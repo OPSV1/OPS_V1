@@ -235,7 +235,7 @@ const days=Math.ceil((new Date(D.sub.until+'T00:00')-new Date(today()+'T00:00'))
 document.getElementById('wm').style.backgroundImage=D.cfg.logo?`url(${D.cfg.logo})`:'none';
 document.getElementById('app').innerHTML=`<nav id="nav">${allowed.map(m=>`<button class="${pg==m?'on':''}" onclick="ST.page='${m}';render()"><span>${IC[m]}</span>${MODS[m]}</button>`).join('')}<button onclick="me=null;render()"><span>🚪</span>Keluar</button></nav><div id="main"><div class="row np" style="justify-content:space-between"><h2>${IC[pg]} ${MODS[pg]}</h2><small style="color:var(--mu)">${E(me.nama)} · ${me.role} · ${isS()?'akses '+days+' hari':''}</small> <button class="b s sm" onclick="myAcc()">👤 Akun Saya</button> <button class="b s sm" onclick="guide()">📖 Panduan</button></div><div class="ph">${D.cfg.logo?`<img src="${D.cfg.logo}">`:''}<div><b>${E(D.cfg.co)}</b><br>${MODS[pg]} · dicetak ${today()}</div></div>${h}</div>`}
 /* ===== NusaOps Sync: Supabase REST, offline-first ===== */
-const NS_URL='',NS_KEY=''; /* isi Project URL & anon/publishable key Supabase di sini (aman dipublikasikan; JANGAN isi service_role) */
+const NS_URL='https://txhwhhkbgaesioqvwrnb.supabase.co',NS_KEY=''; /* isi Project URL & anon/publishable key Supabase di sini (aman dipublikasikan; JANGAN isi service_role) */
 const H=async p=>{try{if(!(window.crypto&&crypto.subtle))return p;const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('nusa|'+p));return'h:'+[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}catch(e){return p}};
 const okPw=(u,p,h)=>u.pass==h||(!String(u.pass).startsWith('h:')&&u.pass==p);
 const NS=(()=>{
@@ -243,14 +243,14 @@ const SK='nusaops_sync',SING={cfg:()=>{const{url,anon,srk,...r}=D.cfg;return r},
 let S={cur:'',init:false,snap:{}},bp=null,again=false,needPush=true,tm=null,rt=null,bo=0,pend=false,started=false;
 try{S=Object.assign(S,JSON.parse(localStorage.getItem(SK)||'{}'))}catch(e){}
 const persist=()=>{try{localStorage.setItem(SK,JSON.stringify(S))}catch(e){}};
-const cfg=()=>({u:(NS_URL||D.cfg.url||'').trim().replace(/\/+$/,''),k:(NS_KEY||D.cfg.anon||'').trim()});
+const cfg=()=>({u:(NS_URL||D.cfg.url||'').trim().replace(/\/+$/,'').replace(/\/rest\/v1$/,'').replace(/\/+$/,''),k:(NS_KEY||D.cfg.anon||'').trim()});
 const sj=v=>v&&typeof v=='object'?Array.isArray(v)?'['+v.map(sj).join()+']':'{'+Object.keys(v).filter(k=>v[k]!==undefined).sort().map(k=>JSON.stringify(k)+':'+sj(v[k])).join()+'}':JSON.stringify(v);
 const hs=s=>{let a=5381,b=52711;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);a=(a*33)^c;b=(b*31+c)|0}return(a>>>0).toString(36)+(b>>>0).toString(36)+s.length};
 const cols=()=>Object.keys(D).filter(k=>Array.isArray(D[k])&&D[k].every(r=>r&&r.id!=null));
 const cur=()=>{const o={};for(const c of cols()){const m=o[c]={};for(const r of D[c])m[String(r.id)]=[hs(sj(r)),r]}for(const c in SING){const v=SING[c]();o[c]={main:[hs(sj(v)),v]}}return o};
 const el=document.createElement('div');el.id='nsst';el.style.cssText='position:fixed;top:calc(3px + env(safe-area-inset-top,0px));left:8px;z-index:9999;font:600 10.5px system-ui,sans-serif;padding:2px 9px;border-radius:99px;background:rgba(15,23,42,.8);color:#fff;cursor:pointer;opacity:.9;max-width:70vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
 const sty=document.createElement('style');sty.textContent='@media print{#nsst{display:none!important}}';
-function setSt(s,m){const L={ok:'● Tersinkron',sync:'⟳ Menyinkron…',err:'⚠ Offline, mencoba lagi',cfg:'⚠ Server belum diatur (ketuk)'};el.textContent=L[s];el.title=m||L[s];el.style.background=s=='ok'?'rgba(5,120,85,.85)':s=='sync'?'rgba(15,23,42,.8)':'rgba(180,83,9,.9)'}
+function setSt(s,m){const L={ok:'● Tersinkron',sync:'⟳ Menyinkron…',err:'⚠ Offline, mencoba lagi',cfg:'⚠ Server belum diatur (ketuk)'};el.dataset.err=s=='err'?(m||'tidak diketahui'):'';el.textContent=s=='err'&&m?'⚠ '+String(m).slice(0,80):L[s];el.title=(m||L[s])+' [sync v3]';el.style.background=s=='ok'?'rgba(5,120,85,.85)':s=='sync'?'rgba(15,23,42,.8)':'rgba(180,83,9,.9)'}
 async function rq(path,opt={}){const{u,k}=cfg(),ac=new AbortController(),t=setTimeout(()=>ac.abort(),25000);try{const h={apikey:k,'Content-Type':'application/json'};if(k.startsWith('eyJ'))h.Authorization='Bearer '+k;const r=await fetch(u+'/rest/v1/'+path,{...opt,headers:{...h,...opt.headers},signal:ac.signal});const tx=await r.text();if(!r.ok)throw new Error(r.status+' '+tx.slice(0,160));return tx?JSON.parse(tx):null}finally{clearTimeout(t)}}
 function apply(rows){let ch=false;const g={};rows.forEach(r=>(g[r.col]=g[r.col]||[]).push(r));
 for(const c in g){const sn=S.snap[c]=S.snap[c]||{};
@@ -279,7 +279,7 @@ try{const sp=async()=>{if(needPush){needPush=false;try{await push()}catch(e){nee
 catch(e){console.warn('sync',e);setSt('err',String(e.message||e));clearTimeout(rt);bo=Math.min(6e4,(bo||4e3)*2);rt=setTimeout(run,bo)}})().finally(()=>{bp=null;if(again){again=false;setTimeout(run,300)}});return bp}
 function touch(){needPush=true;clearTimeout(tm);tm=setTimeout(run,1200)}
 function start(){if(!started){started=true;document.head.appendChild(sty);document.body.appendChild(el);
-el.onclick=()=>{const c=cfg();if(!c.u||!c.k){const u=prompt('Project URL Supabase (https://xxxx.supabase.co):'),k=u&&prompt('Anon / publishable key:');if(u&&k){D.cfg.url=u.trim();D.cfg.anon=k.trim();_save()}else return}run()};
+el.onclick=()=>{const c=cfg();if(el.dataset.err)alert('Detail error sinkronisasi:\n'+el.dataset.err+'\n\nURL: '+c.u+'\nKey: '+(c.k?c.k.slice(0,20)+'…':'(kosong)')+'\nVersi sync: v3');if(!c.u||!c.k){const u=prompt('Project URL Supabase (https://xxxx.supabase.co):'),k=u&&prompt('Anon / publishable key:');if(u&&k){D.cfg.url=u.trim();D.cfg.anon=k.trim();_save()}else return}run()};
 setInterval(()=>{if(document.hidden)return;if(pend)refresh();if(!bp)run()},10000);
 ['online','focus'].forEach(e=>addEventListener(e,()=>run()));document.addEventListener('visibilitychange',()=>{if(!document.hidden)run()})}
 run()}
