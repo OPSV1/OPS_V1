@@ -235,7 +235,7 @@ const days=Math.ceil((new Date(D.sub.until+'T00:00')-new Date(today()+'T00:00'))
 document.getElementById('wm').style.backgroundImage=D.cfg.logo?`url(${D.cfg.logo})`:'none';
 document.getElementById('app').innerHTML=`<nav id="nav">${allowed.map(m=>`<button class="${pg==m?'on':''}" onclick="ST.page='${m}';render()"><span>${IC[m]}</span>${MODS[m]}</button>`).join('')}<button onclick="me=null;render()"><span>🚪</span>Keluar</button></nav><div id="main"><div class="row np" style="justify-content:space-between"><h2>${IC[pg]} ${MODS[pg]}</h2><small style="color:var(--mu)">${E(me.nama)} · ${me.role} · ${isS()?'akses '+days+' hari':''}</small> <button class="b s sm" onclick="myAcc()">👤 Akun Saya</button> <button class="b s sm" onclick="guide()">📖 Panduan</button></div><div class="ph">${D.cfg.logo?`<img src="${D.cfg.logo}">`:''}<div><b>${E(D.cfg.co)}</b><br>${MODS[pg]} · dicetak ${today()}</div></div>${h}</div>`}
 /* ===== NusaOps Sync: Supabase REST, offline-first ===== */
-const NS_URL='https://txhwhhkbgaesioqvwrnb.supabase.co',NS_KEY=''; /* isi Project URL & anon/publishable key Supabase di sini (aman dipublikasikan; JANGAN isi service_role) */
+const NS_URL='https://txhwhhkbgaesioqvwrnb.supabase.co',NS_KEY='sb_publishable_TYBZhZq4rtcztzgrgkrdvw_TjolZqJF'; /* isi Project URL & anon/publishable key Supabase di sini (aman dipublikasikan; JANGAN isi service_role) */
 const H=async p=>{try{if(!(window.crypto&&crypto.subtle))return p;const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('nusa|'+p));return'h:'+[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}catch(e){return p}};
 const okPw=(u,p,h)=>u.pass==h||(!String(u.pass).startsWith('h:')&&u.pass==p);
 const NS=(()=>{
@@ -243,7 +243,7 @@ const SK='nusaops_sync',SING={cfg:()=>{const{url,anon,srk,...r}=D.cfg;return r},
 let S={cur:'',init:false,snap:{}},bp=null,again=false,needPush=true,tm=null,rt=null,bo=0,pend=false,started=false;
 try{S=Object.assign(S,JSON.parse(localStorage.getItem(SK)||'{}'))}catch(e){}
 const persist=()=>{try{localStorage.setItem(SK,JSON.stringify(S))}catch(e){}};
-const cfg=()=>({u:(NS_URL||D.cfg.url||'').trim().replace(/\/+$/,'').replace(/\/rest\/v1$/,'').replace(/\/+$/,''),k:(NS_KEY||D.cfg.anon||'').trim()});
+const cfg=()=>({u:(D.cfg.url||NS_URL||'').trim().replace(/\/+$/,'').replace(/\/rest\/v1$/,'').replace(/\/+$/,''),k:(D.cfg.anon||NS_KEY||'').trim()});
 const sj=v=>v&&typeof v=='object'?Array.isArray(v)?'['+v.map(sj).join()+']':'{'+Object.keys(v).filter(k=>v[k]!==undefined).sort().map(k=>JSON.stringify(k)+':'+sj(v[k])).join()+'}':JSON.stringify(v);
 const hs=s=>{let a=5381,b=52711;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);a=(a*33)^c;b=(b*31+c)|0}return(a>>>0).toString(36)+(b>>>0).toString(36)+s.length};
 const cols=()=>Object.keys(D).filter(k=>Array.isArray(D[k])&&D[k].every(r=>r&&r.id!=null));
