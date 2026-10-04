@@ -141,7 +141,7 @@ const my=D.air.filter(r=>r.sup==d.nama&&r.tgl==today());
 return`<div class="card"><span class="tag g2">GPS aktif</span> ${E(d.nama)}</div><div class="card"><h3>Isi Air Tawar</h3><div class="f"><div><label>Order kapal</label><select id="so"><option value="">— ketik manual —</option>${opts(openOrd(),o=>o.id,o=>o.kapal+' · '+o.pt)}</select></div><div><label>Armada yang dipakai</label><select id="sa"><option>5</option><option>10</option></select></div><div><label>Kapal (jika manual)</label><input id="sk" list="kl">${kl()}</div><div><label>PT (jika manual)</label><input id="sp"></div><div><label>Realisasi (ton)</label><input type="number" id="sr2" step="0.1"></div><div><label>Foto dokumentasi (wajib)</label><input type="file" id="sf" accept="image/*" capture="environment"></div></div><p><button class="b" onclick="supSave()">Simpan</button></p></div><div class="card"><h3>Hari ini: ${my.length} rit</h3>${T(ACOLS.slice(0,5),my)}</div>`}
 function supSave(){const d=D.drv.find(x=>x.id==me.drv),f=document.getElementById('sf').files[0],pt=V('sp').trim(),q=N('sr2');if(!GOK||!window.POS)return toast('GPS harus aktif');const o=D.ord.find(x=>x.id==V('so'));if(!o&&(!pt||!V('sk').trim()))return toast('Pilih order atau isi kapal & PT');if(q<=0)return toast('Isi realisasi');if(!f)return toast('Foto dokumentasi wajib');img(f,u=>{D.air.push({id:uid(),tgl:today(),pt:o?o.pt:pt,kapal:o?o.kapal:V('sk').trim(),ord:o?o.id:'',sup:d.nama,armada:V('sa'),real:q,harga:o?o.harga:0,lat:POS.latitude,lon:POS.longitude,foto:u});save();toast('Tersimpan');render()})}
 function myAcc(){mod('Akun Saya',`<label>ID / username</label><input id="mu" value="${E(me.user)}"><label>Password baru (kosong = tidak diubah)</label><input id="mp" type="password"><label>Password lama (konfirmasi)</label><input id="mo" type="password"><p><button class="b" onclick="myAccSave()">Simpan</button></p>`)}
-function myAccSave(){if(V('mo')!=me.pass)return toast('Password lama salah');const u=V('mu').trim();if(!u)return toast('ID wajib diisi');if(D.users.some(x=>x.user==u&&x.id!=me.id))return toast('ID sudah dipakai');me.user=u;if(V('mp'))me.pass=V('mp');save();closeM();toast('Akun diperbarui')}
+async function myAccSave(){if(!okPw(me,V('mo'),await H(V('mo'))))return toast('Password lama salah');const u=V('mu').trim();if(!u)return toast('ID wajib diisi');if(D.users.some(x=>x.user==u&&x.id!=me.id))return toast('ID sudah dipakai');me.user=u;if(V('mp'))me.pass=await H(V('mp'));save();closeM();toast('Akun diperbarui')}
 
 const kl=()=>'<datalist id="kl">'+[...new Set(D.air.map(r=>r.kapal).filter(Boolean))].map(k=>`<option value="${E(k)}">`).join('')+'</datalist>';
 function kapalCard(rows){const m={};rows.forEach(r=>{const k=(r.kapal||'-').toLowerCase()+'|'+r.pt.toLowerCase()+'|'+r.tgl;(m[k]=m[k]||{kapal:r.kapal||'-',pt:r.pt,tgl:r.tgl,rows:[]}).rows.push(r)});const L=Object.values(m).map(x=>({...x,r5:x.rows.filter(r=>r.armada==5).length,r10:x.rows.filter(r=>r.armada==10).length,...st(x.rows)})).sort((a,b)=>b.tgl.localeCompare(a.tgl));window.KP=L;return`<div class="card"><h3>🚢 Rekap per Kapal (klik untuk detail & fee)</h3>${T([['Tanggal',x=>x.tgl],['Kapal',x=>E(x.kapal)],['PT',x=>E(x.pt)],['Rit 5 ton',x=>x.r5],['Rit 10 ton',x=>x.r10],['Total ton',x=>x.ton],['Fee supir',x=>R(x.fee)]],L,'kpD')}</div>`}
@@ -215,14 +215,14 @@ if(t=='sub'&&isS()){const rq=D.sub.req;h+=`<div class="card"><h3>Masa Akses</h3>
 function logoUp(el){const f=el.files[0],r=new FileReader();r.onload=()=>{D.cfg.logo=r.result;save();render()};if(f)r.readAsDataURL(f)}
 function profSave(){D.cfg.saved=true;D.cfg.co=V('pc');D.cfg.fee5=N('f5');D.cfg.fee10=N('f10');save();toast('Tersimpan');render()}
 function sbSave(){D.cfg.url=V('su').trim();D.cfg.anon=V('sa').trim();D.cfg.srk=V('sr').trim();save();render()}
-function usrAdd(){const u=V('uu').trim();if(!u||!V('up')||!V('un').trim())return toast('Lengkapi data');if(D.users.some(x=>x.user==u))return toast('Username sudah dipakai');const sp=V('ur')=='supir';if(sp&&!V('ud'))return toast('Pilih data supir');D.users.push({id:uid(),nama:V('un'),user:u,pass:V('up'),role:V('ur'),drv:V('ud'),mods:sp?['air']:['air','inv','trk','kas']});save();render()}
+async function usrAdd(){const u=V('uu').trim();if(!u||!V('up')||!V('un').trim())return toast('Lengkapi data');if(D.users.some(x=>x.user==u))return toast('Username sudah dipakai');const sp=V('ur')=='supir';if(sp&&!V('ud'))return toast('Pilih data supir');D.users.push({id:uid(),nama:V('un'),user:u,pass:await H(V('up')),role:V('ur'),drv:V('ud'),mods:sp?['air']:['air','inv','trk','kas']});save();render()}
 function usrEdit(id){const u=D.users.find(x=>x.id==id);mod('Hak akses '+E(u.nama),`<label>Role</label><select id="er">${isS()?`<option ${u.role=='admin'?'selected':''} value="admin">Admin</option>`:''}<option ${u.role=='petugas'?'selected':''} value="petugas">Petugas</option><option ${u.role=='supir'?'selected':''} value="supir">Supir</option></select><p>${Object.keys(MODS).map(m=>`<label style="color:var(--tx)"><input type="checkbox" style="width:auto" class="em" value="${m}" ${u.mods.includes(m)?'checked':''}> ${MODS[m]}</label>`).join('')}</p><button class="b" onclick="usrSave('${id}')">Simpan</button>`)}
 function usrSave(id){const u=D.users.find(x=>x.id==id);u.role=V('er');u.mods=[...document.querySelectorAll('.em:checked')].map(c=>c.value);save();closeM();render()}
 function subAct(id,ok){const r=D.sub.req.find(x=>x.id==id);r.st=ok?'disetujui':'ditolak';if(ok){const b=new Date(Math.max(new Date(D.sub.until+'T00:00'),new Date(today()+'T00:00')));b.setDate(b.getDate()+r.days);D.sub.until=iso(b)}save();render()}
 /* ===== SHELL ===== */
 const locked=()=>me.role!='super'&&D.sub.until<today();
 function login(){document.getElementById('app').innerHTML=`<div id="lbg">${bgDef()}</div><div class="login card gl"><h2>💧 NusaOps</h2><p style="color:var(--mu)">Air tawar · Inventory · Trucking</p><label>Username</label><input id="lu"><label style="margin-top:8px">Password</label><input id="lp" type="password" onkeydown="if(event.key=='Enter')doLogin()"><p><button class="b" style="width:100%" onclick="doLogin()">Masuk</button></p><p style="text-align:center"><button class="b s" onclick="guide()">📖 Buku Panduan</button></p></div>`;playBg();idb('get').then(b=>{if(b)setBg(URL.createObjectURL(b),b.type)})}
-function doLogin(){const u=D.users.find(x=>x.user==V('lu').trim()&&x.pass==V('lp'));if(!u)return toast('Username/password salah');me=u;ST.page=u.mods[0]||'air';if(u.role=='supir')startWatch();render()}
+async function doLogin(){const un=V('lu').trim(),pw=V('lp'),h=await H(pw),f=()=>D.users.find(x=>x.user==un&&okPw(x,pw,h));let u=f();if(!u){await NS.run();u=f()}if(!u)return toast('Username/password salah');if(u.pass!=h){u.pass=h;save()}me=u;ST.page=u.mods[0]||'air';if(u.role=='supir')startWatch();render()}
 function lockPg(){const mine=D.sub.req.filter(r=>r.by==me.nama).slice(-3);document.getElementById('app').innerHTML=`<div class="login card"><h2>🔒 Akses Berakhir</h2><p>Masa akses habis pada ${D.sub.until}. Ajukan pembayaran agar pihak pengelola dapat memproses perpanjangan.</p><label>Durasi (hari)</label><input id="rd" type="number" value="30"><label>Nominal dibayar</label><input id="rn" type="number"><label>Catatan / bukti bayar</label><input id="rk"><p><button class="b" onclick="subReq()">Ajukan</button> <button class="b s" onclick="me=null;render()">Keluar</button></p>${mine.map(r=>`<p>${r.tgl}: ${r.days} hari – <span class="tag">${r.st}</span></p>`).join('')}</div>`}
 function subReq(){D.sub.req.push({id:uid(),tgl:today(),by:me.nama,days:N('rd')||30,n:N('rn'),note:V('rk'),st:'menunggu'});save();toast('Pengajuan terkirim');lockPg()}
 function render(){camStop();closeM();if(!me||me.role!='supir')stopWatch();if(!me)return login();if(locked())return lockPg();const allowed=Object.keys(MODS).filter(m=>isS()||me.mods.includes(m));if(!allowed.includes(ST.page))ST.page=allowed[0];REP=null;const pg=ST.page,t=ST.t[pg];let h='';
@@ -234,5 +234,57 @@ if(pg!='set')h+=fbk(pg);
 const days=Math.ceil((new Date(D.sub.until+'T00:00')-new Date(today()+'T00:00'))/864e5);
 document.getElementById('wm').style.backgroundImage=D.cfg.logo?`url(${D.cfg.logo})`:'none';
 document.getElementById('app').innerHTML=`<nav id="nav">${allowed.map(m=>`<button class="${pg==m?'on':''}" onclick="ST.page='${m}';render()"><span>${IC[m]}</span>${MODS[m]}</button>`).join('')}<button onclick="me=null;render()"><span>🚪</span>Keluar</button></nav><div id="main"><div class="row np" style="justify-content:space-between"><h2>${IC[pg]} ${MODS[pg]}</h2><small style="color:var(--mu)">${E(me.nama)} · ${me.role} · ${isS()?'akses '+days+' hari':''}</small> <button class="b s sm" onclick="myAcc()">👤 Akun Saya</button> <button class="b s sm" onclick="guide()">📖 Panduan</button></div><div class="ph">${D.cfg.logo?`<img src="${D.cfg.logo}">`:''}<div><b>${E(D.cfg.co)}</b><br>${MODS[pg]} · dicetak ${today()}</div></div>${h}</div>`}
-render();
+/* ===== NusaOps Sync: Supabase REST, offline-first ===== */
+const NS_URL='',NS_KEY=''; /* isi Project URL & anon/publishable key Supabase di sini (aman dipublikasikan; JANGAN isi service_role) */
+const H=async p=>{try{if(!(window.crypto&&crypto.subtle))return p;const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('nusa|'+p));return'h:'+[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}catch(e){return p}};
+const okPw=(u,p,h)=>u.pass==h||(!String(u.pass).startsWith('h:')&&u.pass==p);
+const NS=(()=>{
+const SK='nusaops_sync',SING={cfg:()=>{const{url,anon,srk,...r}=D.cfg;return r},sub:()=>D.sub};
+let S={cur:'',init:false,snap:{}},bp=null,again=false,needPush=true,tm=null,rt=null,bo=0,pend=false,started=false;
+try{S=Object.assign(S,JSON.parse(localStorage.getItem(SK)||'{}'))}catch(e){}
+const persist=()=>{try{localStorage.setItem(SK,JSON.stringify(S))}catch(e){}};
+const cfg=()=>({u:(NS_URL||D.cfg.url||'').trim().replace(/\/+$/,''),k:(NS_KEY||D.cfg.anon||'').trim()});
+const sj=v=>v&&typeof v=='object'?Array.isArray(v)?'['+v.map(sj).join()+']':'{'+Object.keys(v).filter(k=>v[k]!==undefined).sort().map(k=>JSON.stringify(k)+':'+sj(v[k])).join()+'}':JSON.stringify(v);
+const hs=s=>{let a=5381,b=52711;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);a=(a*33)^c;b=(b*31+c)|0}return(a>>>0).toString(36)+(b>>>0).toString(36)+s.length};
+const cols=()=>Object.keys(D).filter(k=>Array.isArray(D[k])&&D[k].every(r=>r&&r.id!=null));
+const cur=()=>{const o={};for(const c of cols()){const m=o[c]={};for(const r of D[c])m[String(r.id)]=[hs(sj(r)),r]}for(const c in SING){const v=SING[c]();o[c]={main:[hs(sj(v)),v]}}return o};
+const el=document.createElement('div');el.id='nsst';el.style.cssText='position:fixed;top:calc(3px + env(safe-area-inset-top,0px));left:8px;z-index:9999;font:600 10.5px system-ui,sans-serif;padding:2px 9px;border-radius:99px;background:rgba(15,23,42,.8);color:#fff;cursor:pointer;opacity:.9;max-width:70vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+const sty=document.createElement('style');sty.textContent='@media print{#nsst{display:none!important}}';
+function setSt(s,m){const L={ok:'● Tersinkron',sync:'⟳ Menyinkron…',err:'⚠ Offline, mencoba lagi',cfg:'⚠ Server belum diatur (ketuk)'};el.textContent=L[s];el.title=m||L[s];el.style.background=s=='ok'?'rgba(5,120,85,.85)':s=='sync'?'rgba(15,23,42,.8)':'rgba(180,83,9,.9)'}
+async function rq(path,opt={}){const{u,k}=cfg(),ac=new AbortController(),t=setTimeout(()=>ac.abort(),25000);try{const h={apikey:k,'Content-Type':'application/json'};if(k.startsWith('eyJ'))h.Authorization='Bearer '+k;const r=await fetch(u+'/rest/v1/'+path,{...opt,headers:{...h,...opt.headers},signal:ac.signal});const tx=await r.text();if(!r.ok)throw new Error(r.status+' '+tx.slice(0,160));return tx?JSON.parse(tx):null}finally{clearTimeout(t)}}
+function apply(rows){let ch=false;const g={};rows.forEach(r=>(g[r.col]=g[r.col]||[]).push(r));
+for(const c in g){const sn=S.snap[c]=S.snap[c]||{};
+if(SING[c]){const r=g[c][g[c].length-1];if(r.deleted||!r.data)continue;if(sn.main==hs(sj(r.data)))continue;if(c=='cfg')D.cfg=Object.assign({},D.cfg,r.data);else D[c]=r.data;sn.main=hs(sj(SING[c]()));ch=true;continue}
+const arr=D[c]=Array.isArray(D[c])?D[c]:[],m=new Map(arr.map((r,i)=>[String(r.id),i])),rm=new Set();
+for(const r of g[c]){const id=String(r.id);if(r.deleted){if(m.has(id)){rm.add(m.get(id));m.delete(id);ch=true}delete sn[id];continue}
+if(!r.data||r.data.id==null)continue;const h=hs(sj(r.data));if(sn[id]==h)continue;
+if(m.has(id))arr[m.get(id)]=r.data;else{m.set(id,arr.length);arr.push(r.data)}sn[id]=h;ch=true}
+if(rm.size)D[c]=arr.filter((_,i)=>!rm.has(i))}
+if(ch){if(me){const m2=D.users.find(x=>x.id==me.id);if(!m2){me=null;toast('Akun Anda sudah dihapus');render()}else me=m2}_save()}
+return ch}
+async function pull(){let from=S.cur?new Date(new Date(S.cur)-5000).toISOString():'1970-01-01T00:00:00Z',mx=S.cur,ch=false;
+for(;;){const rows=await rq('nusa_docs?select=col,id,data,deleted,updated_at&updated_at=gt.'+encodeURIComponent(from)+'&order=updated_at.asc&limit=1000');
+if(!rows.length)break;if(apply(rows))ch=true;const l=rows[rows.length-1].updated_at;mx=new Date(l).toISOString();if(rows.length<1000||l==from)break;from=l}
+S.cur=mx;return ch}
+async function push(){const c=cur(),jobs=[];
+for(const col in c){const sn=S.snap[col]||{};for(const id in c[col])if(sn[id]!=c[col][id][0])jobs.push({col,id,h:c[col][id][0],data:c[col][id][1],deleted:false})}
+for(const col in S.snap)for(const id in S.snap[col])if(!(c[col]&&id in c[col]))jobs.push({col,id,deleted:true,data:{}});
+for(let i=0;i<jobs.length;){const b=[];let sz=0;while(i<jobs.length&&b.length<100&&(sz<1.5e6||!b.length)){const j=jobs[i++];b.push(j);sz+=j.deleted?50:JSON.stringify(j.data).length}
+await rq('nusa_docs?on_conflict=col,id',{method:'POST',headers:{Prefer:'resolution=merge-duplicates,return=minimal'},body:JSON.stringify(b.map(j=>({col:j.col,id:String(j.id),data:j.data,deleted:j.deleted})))});
+b.forEach(j=>{const sn=S.snap[j.col]=S.snap[j.col]||{};if(j.deleted)delete sn[j.id];else sn[j.id]=j.h});persist()}}
+function refresh(){if(!me)return;const a=document.activeElement,t=a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName);if(document.getElementById('md')||t||cam){pend=true;return}pend=false;render()}
+function run(){if(bp){again=true;return bp}
+bp=(async()=>{const{u,k}=cfg();if(!u||!k){setSt('cfg');return}setSt('sync');
+try{const sp=async()=>{if(needPush){needPush=false;try{await push()}catch(e){needPush=true;throw e}}};if(S.init)await sp();const ch=await pull();S.init=true;await sp();persist();bo=0;setSt('ok');if(ch)refresh()}
+catch(e){console.warn('sync',e);setSt('err',String(e.message||e));clearTimeout(rt);bo=Math.min(6e4,(bo||4e3)*2);rt=setTimeout(run,bo)}})().finally(()=>{bp=null;if(again){again=false;setTimeout(run,300)}});return bp}
+function touch(){needPush=true;clearTimeout(tm);tm=setTimeout(run,1200)}
+function start(){if(!started){started=true;document.head.appendChild(sty);document.body.appendChild(el);
+el.onclick=()=>{const c=cfg();if(!c.u||!c.k){const u=prompt('Project URL Supabase (https://xxxx.supabase.co):'),k=u&&prompt('Anon / publishable key:');if(u&&k){D.cfg.url=u.trim();D.cfg.anon=k.trim();_save()}else return}run()};
+setInterval(()=>{if(document.hidden)return;if(pend)refresh();if(!bp)run()},10000);
+['online','focus'].forEach(e=>addEventListener(e,()=>run()));document.addEventListener('visibilitychange',()=>{if(!document.hidden)run()})}
+run()}
+return{start,run,touch}})();
+const _save=save;save=function(){_save();NS.touch()};
+const _sb=sbSave;sbSave=function(){_sb();NS.start()};
+render();NS.start();
 </script></body></html>
